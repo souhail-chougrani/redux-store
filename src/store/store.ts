@@ -1,21 +1,36 @@
 export class Store {
   private subscribers: Function[];
-  private reducer: { [key: string]: Function };
+  private reducers: { [key: string]: Function };
   private state: { [key: string]: any };
-  constructor(reducers = {}, initState = {}) {
-    this.state = initState;
+
+  constructor(reducers = {}, InitialState = {}) {
+    this.subscribers = [];
+    this.reducers = reducers;
+    this.state = this.reduce(InitialState, {});
   }
+
   get value() {
     return this.state;
   }
   dispatch(action) {
-    console.log(this.state);
-    console.log(action);
-    this.state = {
-      ...this.state,
-      todos: [...this.state.todos, action.payload]
-    };
+    this.state = this.reduce(this.state, action);
+    this.notify();
+  }
+  subscribe(fn) {
+    this.subscribers = [...this.subscribers, fn];
+    this.notify();
+    return () => (this.subscribers = this.subscribers.filter(e => e !== fn));
+  }
+  unsbscribe(fn) {}
+  private notify() {
+    this.subscribers.forEach(fn => fn(this.value));
+  }
+  private reduce(state, action) {
+    const newState = {};
+    for (const prop in this.reducers) {
+      newState[prop] = this.reducers[prop](state[prop], action);
+    }
 
-    console.log("dispatch", this.state);
+    return newState;
   }
 }
